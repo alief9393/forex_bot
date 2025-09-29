@@ -1,5 +1,3 @@
-# services/mt5_data_service.py (The FINAL, More Verbose Version)
-
 import MetaTrader5 as mt5
 import pandas as pd
 from datetime import datetime, timedelta
@@ -7,7 +5,7 @@ import pytz
 
 class MT5DataService:
     def __init__(self):
-        pass # Connection is managed externally
+        pass 
 
     def get_all_historical_data(self, symbol: str, timeframe_str: str, start_date: str) -> pd.DataFrame | None:
         """
@@ -37,10 +35,8 @@ class MT5DataService:
             df.rename(columns={'tick_volume': 'volume'}, inplace=True)
             df = df[['open', 'high', 'low', 'close', 'volume']]
             
-            # --- NEW LOGGING ---
             print(f"MT5DataService (Hist): Successfully downloaded and processed {len(df)} candles.")
             print(f"MT5DataService (Hist): Data range from {df.index.min()} to {df.index.max()}")
-            # -----------------
             return df
         except Exception as e:
             print(f"MT5DataService (Hist): An error occurred: {e}")
@@ -68,10 +64,8 @@ class MT5DataService:
             df.rename(columns={'tick_volume': 'volume'}, inplace=True)
             df = df[['open', 'high', 'low', 'close', 'volume']]
             
-            # --- NEW, MORE DETAILED LOGGING ---
             print(f"MT5DataService (Live): Successfully fetched {len(df)} candles.")
             print(f"MT5DataService (Live): Most recent candle timestamp is {df.index[-1]}")
-            # ----------------------------------
             
             if not is_startup_run:
                 df = df.iloc[:-1]

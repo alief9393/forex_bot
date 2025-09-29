@@ -1,4 +1,3 @@
-# services/heuristic_service.py (The FINAL, Generic MTF Version)
 import pandas as pd
 
 class HeuristicService:
@@ -19,7 +18,6 @@ class HeuristicService:
         atr_value = latest_candle['ATRr_14']
         pullback_level = latest_candle['EMA_21']
         
-        # Use different risk parameters based on the strategy's timeframe
         sl_multiplier = 1.5 if timeframe.upper() == 'H1' else 2.0
         tp1_multiplier = 2.0 if timeframe.upper() == 'H1' else 2.0
 
