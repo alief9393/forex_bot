@@ -1,0 +1,11 @@
+{
+  "state": "WATCHING_FOR_ENTRY",
+  "bias_details": {
+    "bias": "BUY",
+    "pullback_level": 1.17156,
+    "sl": 1.16922,
+    "tp1": 1.17468,
+    "tp2": 1.1778,
+    "tp3": 1.18092
+  }
+}

@@ -32,14 +32,17 @@ class MLService:
             return 0
 
         # --- NEW: Set a confidence threshold ---
-        CONFIDENCE_THRESHOLD = 0.60  # We will only trade if the model is 60% confident or more.
+        CONFIDENCE_THRESHOLD = 0.40  # We will only trade if the model is 60% confident or more.
         # ------------------------------------
 
         latest_data = df.iloc[-1:]
         features_for_model = latest_data[self.feature_names]
         
         # --- NEW: Get probabilities instead of just the final prediction ---
-        probabilities = self.model.predict(features_for_model)[0]
+        if hasattr(self.model, "predict_proba"):
+            probabilities = self.model.predict_proba(features_for_model)[0]
+        else:
+            probabilities = self.model.predict(features_for_model)[0]
         # The output is an array like [prob_HOLD, prob_BUY, prob_SELL]
         # Example: [0.2, 0.7, 0.1]
         # -----------------------------------------------------------

@@ -1,4 +1,4 @@
-# forex_bot/main_scheduler.py (The FINAL H1/M15 MTF Version)
+# forex_bot/main_scheduler.py (The FINAL, Single-Strategy H1/M15 Version)
 import configparser, json, time, pytz
 from datetime import datetime
 import MetaTrader5 as mt5
@@ -15,8 +15,9 @@ def run_h1_bias_check(config, symbol: str, data_svc, telegram_svc, heuristic_svc
     strategy_name = f"H1 Bias Hunter ({symbol})"
     print(f"\n[{datetime.now()}] --- Running {strategy_name} ---")
     
-    status_file = f"{symbol.lower()}_status.json"
-    model_file = f"models/{symbol.lower()}_h1.pkl" # <-- NOTE: Using H1 model
+    # --- FIX: Use correct timeframe-specific filenames ---
+    status_file = f"{symbol.lower()}_h1_status.json"
+    model_file = f"models/{symbol.lower()}_h1.pkl"
 
     indicator_svc = IndicatorService()
     ml_svc = MLService(model_path=model_file)
@@ -41,13 +42,17 @@ def run_m15_entry_hunt(config, symbol: str, data_svc, telegram_svc, heuristic_sv
     strategy_name = f"M15 Entry Scout ({symbol})"
     print(f"\n[{datetime.now()}] --- Running {strategy_name} ---")
 
-    status_file = f"{symbol.lower()}_status.json"
-    log_file = f"{symbol.lower()}_log.csv"
+    # --- FIX: Use correct timeframe-specific filenames ---
+    status_file = f"{symbol.lower()}_h1_status.json"
+    log_file = f"{symbol.lower()}_h1_log.csv"
     
     market_df_m15 = data_svc.get_market_data(symbol=symbol, timeframe_str='M15', limit=5)
     if market_df_m15 is None or market_df_m15.empty: return
     
-    with open(status_file, 'r') as f: status = json.load(f)
+    try:
+        with open(status_file, 'r') as f: status = json.load(f)
+    except FileNotFoundError: return
+    
     if status.get('state') != "WATCHING_FOR_ENTRY": return
 
     bias_details = status['bias_details']
@@ -75,7 +80,9 @@ if __name__ == '__main__':
     data_svc = DataService()
     telegram_svc = TelegramService(bot_token=config['telegram']['bot_token'], channel_id=config['telegram']['channel_id'])
     heuristic_svc = HeuristicService()
-    trade_managers = [TradeManagerService(data_svc, telegram_svc, f"{s.lower()}_log.csv", f"{s.lower()}_status.json", s) for s in symbols_to_trade]
+    
+    # --- FIX: Use correct timeframe-specific filenames ---
+    trade_managers = [TradeManagerService(data_svc, telegram_svc, f"{s.lower()}_h1_log.csv", f"{s.lower()}_h1_status.json", s) for s in symbols_to_trade]
     
     print("\n--- MTF H1/M15 Forex Bot Started ---")
     last_h1_run_hour = -1
@@ -92,7 +99,12 @@ if __name__ == '__main__':
             # H1 Bias Check (every hour)
             if now_utc.minute >= 1 and last_h1_run_hour != now_utc.hour:
                 for symbol in symbols_to_trade:
-                    with open(f"{symbol.lower()}_status.json", 'r') as f: status = json.load(f)
+                    status_file = f"{symbol.lower()}_h1_status.json"
+                    try:
+                        with open(status_file, 'r') as f: status = json.load(f)
+                    except FileNotFoundError:
+                        status = {"state": "HUNTING"}
+                    
                     if status.get('state') == "HUNTING":
                         run_h1_bias_check(config, symbol, data_svc, telegram_svc, heuristic_svc)
                 last_h1_run_hour = now_utc.hour
@@ -100,9 +112,13 @@ if __name__ == '__main__':
             # M15 Entry Hunt (every 15 mins)
             if now_utc.minute % 15 == 0 and last_m15_run_minute != now_utc.minute:
                 for symbol in symbols_to_trade:
-                    with open(f"{symbol.lower()}_status.json", 'r') as f: status = json.load(f)
-                    if status.get('state') == "WATCHING_FOR_ENTRY":
-                        run_m15_entry_hunt(config, symbol, data_svc, telegram_svc, heuristic_svc)
+                    status_file = f"{symbol.lower()}_h1_status.json"
+                    try:
+                        with open(status_file, 'r') as f: status = json.load(f)
+                        if status.get('state') == "WATCHING_FOR_ENTRY":
+                            run_m15_entry_hunt(config, symbol, data_svc, telegram_svc, heuristic_svc)
+                    except FileNotFoundError:
+                        continue
                 last_m15_run_minute = now_utc.minute
 
             time.sleep(60)
